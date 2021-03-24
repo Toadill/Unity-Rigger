@@ -7,27 +7,35 @@ bl_info = {
     "description": "Adds a Unity compatiable bone rig",
     "warning": "",
     "doc_url": "",
-    "category": "scene",
+    "category": "Scene",
 }
 
 import bpy
 
-def main(context):
+#global rigged
+
+
+def rig(context):
+    
     #create the armature object 
     bpy.ops.object.armature_add(enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1)) #create the armature object
+    #Enter edit mode
     bpy.ops.object.mode_set(mode='EDIT', toggle=False)
+    #Get the armature object
     obArm = bpy.context.active_object #get the armature object
     
     #Rename the first bone to root
     obArm.data.bones["Bone"].name = "root"
-    
+    #Get the bone collection
     ebs = obArm.data.edit_bones
+    #Set the root bone deform to false so it dont effect weight painting
     ebs["root"].use_deform = False
     
     #Create The Hips
     eb = ebs.new("hips")
     eb.head = (0, .4, 8.5) # if the head and tail are the same, the bone is deleted
     eb.tail = (0, .4, 10)    # upon returning to object mode
+    #Parent the hip bones to the root bone
     obArm.data.edit_bones['hips'].parent = obArm.data.edit_bones['root']
     
     #Create The Spine
@@ -129,24 +137,24 @@ def main(context):
     #Create The Right Upper Arm
     eb = ebs.new("upper_arm.R")
     eb.head = (-2, .6, 13.8) # if the head and tail are the same, the bone is deleted
-    eb.tail = (-4, .5, 13.7)    # upon returning to object mode
+    eb.tail = (-4, .7, 13.7)    # upon returning to object mode
     obArm.data.edit_bones['upper_arm.R'].parent = obArm.data.edit_bones['shoulder.R']
     
     #Create The Left Upper Arm
     eb = ebs.new("upper_arm.L")
     eb.head = (2, .6, 13.8) # if the head and tail are the same, the bone is deleted
-    eb.tail = (4, .5, 13.7)    # upon returning to object mode
+    eb.tail = (4, .7, 13.7)    # upon returning to object mode
     obArm.data.edit_bones['upper_arm.L'].parent = obArm.data.edit_bones['shoulder.L']
     
     #Create The Right Lower Arm
     eb = ebs.new("lower_arm.R")
-    eb.head = (-4, .5, 13.7) # if the head and tail are the same, the bone is deleted
+    eb.head = (-4, .7, 13.7) # if the head and tail are the same, the bone is deleted
     eb.tail = (-6.4, .5, 13.7)    # upon returning to object mode
     obArm.data.edit_bones['lower_arm.R'].parent = obArm.data.edit_bones['upper_arm.R']
     
     #Create The Left Lower Arm
     eb = ebs.new("lower_arm.L")
-    eb.head = (4, .5, 13.7) # if the head and tail are the same, the bone is deleted
+    eb.head = (4, .7, 13.7) # if the head and tail are the same, the bone is deleted
     eb.tail = (6.4, .5, 13.7)    # upon returning to object mode
     obArm.data.edit_bones['lower_arm.L'].parent = obArm.data.edit_bones['upper_arm.L']
     
@@ -343,14 +351,193 @@ def main(context):
     eb.tail = (7.7, .8, 13.65)    # upon returning to object mode
     obArm.data.edit_bones['pinky_distal.L'].parent = obArm.data.edit_bones['pinky_intermediate.L']
     
+    rigged = True
     
-class SimpleOperator(bpy.types.Operator):
+   
+def ik(context):
+    ###############################################################################################################
+    #################################################IK Bone Constraints###########################################
+    ###############################################################################################################
+    
+    #########################################################################
+    ###############################IK LEFT LEG###############################
+    #########################################################################
+    #Get the bone collection
+    #Get the armature object
+    obArm = bpy.context.active_object #get the armature object
+    ebs = obArm.data.edit_bones
+    #Create IK Leg Target Left
+    eb = ebs.new("IKLegTarget.L")
+    eb.head = (1.2, .5, .5) # if the head and tail are the same, the bone is deleted
+    eb.tail = (1.2, 1.5, .5)    # upon returning to object mode
+    ebs["IKLegTarget.L"].use_deform = False
+
+    #Create IK Leg Pole Left
+    eb = ebs.new("IKLegPole.L")
+    eb.head = (1.2, -5, 8) # if the head and tail are the same, the bone is deleted
+    eb.tail = (1.2, -6, 8)   # upon returning to object mode
+    ebs["IKLegPole.L"].use_deform = False
+    
+    #Rig the left leg
+    armature = bpy.data.objects['Armature']
+    bpy.ops.object.mode_set(mode='POSE', toggle=False)
+    
+    IK = armature.pose.bones["lower_leg.L"].constraints.new('IK')
+    IK.target = bpy.data.objects["Armature"]
+    IK.subtarget = "IKLegTarget.L"
+    IK.pole_target = bpy.data.objects["Armature"]
+    IK.pole_subtarget = "IKLegPole.L"
+    IK.pole_angle = -1.5708
+    IK.chain_count = 2
+    
+    ROT = armature.pose.bones["foot.L"].constraints.new('COPY_ROTATION')
+    ROT.target = bpy.data.objects["Armature"]
+    ROT.subtarget = "IKLegTarget.L"
+    ROT.target_space = 'LOCAL'
+    ROT.owner_space = 'LOCAL'
+    
+    #########################################################################
+    ###############################IK RIGHT LEG##############################
+    #########################################################################
+    #Switch back to edit mode to create the other leg
+    bpy.ops.object.mode_set(mode='EDIT', toggle=False)
+    
+    #Create IK Leg Target Right
+    eb = ebs.new("IKLegTarget.R")
+    eb.head = (-1.2, .5, .5) # if the head and tail are the same, the bone is deleted
+    eb.tail = (-1.2, 1.5, .5)    # upon returning to object mode
+    #Turn off the deform so weights dont effect this bone
+    ebs["IKLegTarget.R"].use_deform = False
+
+    #Create IK Leg Pole Right
+    eb = ebs.new("IKLegPole.R")
+    eb.head = (-1.2, -5, 8) # if the head and tail are the same, the bone is deleted
+    eb.tail = (-1.2, -6, 8)   # upon returning to object mode
+    #Turn off the deform so weights dont effect this bone
+    ebs["IKLegPole.L"].use_deform = False
+    
+    #Rig the right leg
+    armature = bpy.data.objects['Armature']
+    bpy.ops.object.mode_set(mode='POSE', toggle=False)
+    
+    IK = armature.pose.bones["lower_leg.R"].constraints.new('IK')
+    IK.target = bpy.data.objects["Armature"]
+    IK.subtarget = "IKLegTarget.R"
+    IK.pole_target = bpy.data.objects["Armature"]
+    IK.pole_subtarget = "IKLegPole.R"
+    IK.pole_angle = -1.5708
+    IK.chain_count = 2
+    
+    ROT = armature.pose.bones["foot.R"].constraints.new('COPY_ROTATION')
+    ROT.target = bpy.data.objects["Armature"]
+    ROT.subtarget = "IKLegTarget.R"
+    ROT.target_space = 'LOCAL'
+    ROT.owner_space = 'LOCAL'
+    
+    #########################################################################
+    ###############################IK LEFT ARM###############################
+    #########################################################################
+    #edit mode to create IK Bones
+    bpy.ops.object.mode_set(mode='EDIT', toggle=False)
+    
+    #Create IK Arm Target Left
+    eb = ebs.new("IKArmTarget.L")
+    eb.head = (6.4, .5, 13.7) # if the head and tail are the same, the bone is deleted
+    eb.tail = (6.4, 1.5, 13.7)    # upon returning to object mode
+    #Turn off the deform so weights dont effect this bone
+    ebs["IKArmTarget.L"].use_deform = False
+
+    #Create IK Arm Pole Left
+    eb = ebs.new("IKArmPole.L")
+    eb.head = (4, 3, 13.7) # if the head and tail are the same, the bone is deleted
+    eb.tail = (4, 4, 13.7)    # upon returning to object mode
+    #Turn off the deform so weights dont effect this bone
+    ebs["IKArmPole.L"].use_deform = False
+    
+    #Rig the left arm
+    armature = bpy.data.objects['Armature']
+    bpy.ops.object.mode_set(mode='POSE', toggle=False)
+    
+    IK = armature.pose.bones["lower_arm.L"].constraints.new('IK')
+    IK.target = bpy.data.objects["Armature"]
+    IK.subtarget = "IKArmTarget.L"
+    IK.pole_target = bpy.data.objects["Armature"]
+    IK.pole_subtarget = "IKArmPole.L"
+    IK.pole_angle = 3.14159
+    IK.chain_count = 2
+    
+    LOC = armature.pose.bones["hand.L"].constraints.new('COPY_LOCATION')
+    LOC.target = bpy.data.objects["Armature"]
+    LOC.subtarget = "lower_arm.L"
+    LOC.head_tail = 1
+    
+    ROT = armature.pose.bones["hand.L"].constraints.new('COPY_ROTATION')
+    ROT.target = bpy.data.objects["Armature"]
+    ROT.subtarget = "IKArmTarget.L"
+    ROT.target_space = 'LOCAL'
+    ROT.owner_space = 'LOCAL'
+    
+    
+    #########################################################################
+    ###############################IK RIGHT ARM##############################
+    #########################################################################
+    #edit mode to create IK Bones
+    bpy.ops.object.mode_set(mode='EDIT', toggle=False)
+    
+    #Create IK Arm Target Left
+    eb = ebs.new("IKArmTarget.R")
+    eb.head = (-6.4, .5, 13.7) # if the head and tail are the same, the bone is deleted
+    eb.tail = (-6.4, 1.5, 13.7)    # upon returning to object mode
+    #Turn off the deform so weights dont effect this bone
+    ebs["IKArmTarget.R"].use_deform = False
+
+    #Create IK Arm Pole Left
+    eb = ebs.new("IKArmPole.R")
+    eb.head = (-4, 3, 13.7) # if the head and tail are the same, the bone is deleted
+    eb.tail = (-4, 4, 13.7)    # upon returning to object mode
+    #Turn off the deform so weights dont effect this bone
+    ebs["IKArmPole.R"].use_deform = False
+    
+    #Rig the left arm
+    armature = bpy.data.objects['Armature']
+    bpy.ops.object.mode_set(mode='POSE', toggle=False)
+    
+    IK = armature.pose.bones["lower_arm.R"].constraints.new('IK')
+    IK.target = bpy.data.objects["Armature"]
+    IK.subtarget = "IKArmTarget.R"
+    IK.pole_target = bpy.data.objects["Armature"]
+    IK.pole_subtarget = "IKArmPole.R"
+    IK.pole_angle = 0
+    IK.chain_count = 2
+    
+    LOC = armature.pose.bones["hand.R"].constraints.new('COPY_LOCATION')
+    LOC.target = bpy.data.objects["Armature"]
+    LOC.subtarget = "lower_arm.R"
+    LOC.head_tail = 1
+    
+    ROT = armature.pose.bones["hand.R"].constraints.new('COPY_ROTATION')
+    ROT.target = bpy.data.objects["Armature"]
+    ROT.subtarget = "IKArmTarget.R"
+    ROT.target_space = 'LOCAL'
+    ROT.owner_space = 'LOCAL'   
+    
+    
+class CreateRig(bpy.types.Operator):
     #tool tip
-    bl_idname = "object.simple_operator"
+    bl_idname = "create.rig"
     bl_label = "Generate Unity Rig"
 
     def execute(self, context):
-        main(context)
+        rig(context)
+        return {'FINISHED'}
+
+class CreateIK(bpy.types.Operator):
+    #tool tip
+    bl_idname = "create.ik"
+    bl_label = "Generate IK Controls"
+
+    def execute(self, context):
+        ik(context)
         return {'FINISHED'}
 
 class UnityRigPanel(bpy.types.Panel):
@@ -360,28 +547,34 @@ class UnityRigPanel(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "scene"
-
+    
+    #my_bool = bpy.props.BoolProperty(name="bool1")
+    
     def draw(self, context):
         layout = self.layout
-        
         scene = context.scene
+        
+        #layout.prop(scene, "rigged", text="Bool Property")
         
         layout.label(text="Unity Humanoid Rigger")
         row = layout.row()
         row.scale_y = 2.0
-        row.operator("object.simple_operator") 
-
+        row.operator("create.rig")
+        #if rigged: 
+        row = layout.row()
+        row.scale_y = 2.0
+        row.operator("create.ik") 
+        
 
 def register():
     bpy.utils.register_class(UnityRigPanel)
-    bpy.utils.register_class(SimpleOperator)
+    bpy.utils.register_class(CreateRig)
+    bpy.utils.register_class(CreateIK)
 
 def unregister():
     bpy.utils.unregister_class(UnityRigPanel)
-    bpy.utils.unregister_class(SimpleOperator)
+    bpy.utils.unregister_class(CreateRig)
+    bpy.utils.unregister_class(CreateIK)
 
 if __name__ == "__main__":
     register()
-
-#Test call
-#bpy.ops.object.simple_operator()
