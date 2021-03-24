@@ -1,6 +1,6 @@
 # Unity-Rigger
 A Blender AddOn I created for rigging models according to Unity specs
-As well as adding IK constraints to the rig to easily start animating in unity
+It now also adds IK constraints to the rig to easily start animating in blender
 
 
 Please support me on patreon 
